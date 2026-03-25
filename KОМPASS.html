@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KOMPASS</title>
+
+<style>
+:root {
+  --bg: #0b0d12;
+  --card: #151821;
+  --line: #2a3040;
+  --text: #eef2f7;
+  --accent: #38bdf8;
+  --pass: #bef264; /* лаймовый */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.app {
+  width: 100%;
+  max-width: 420px;
+  background: var(--card);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+h1 {
+  text-align: center;
+  font-size: 24px;
+  margin-bottom: 24px;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+}
+
+.pass {
+  color: var(--pass);
+}
+
+.step {
+  display: none;
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.step.active {
+  display: block;
+  animation: slideIn 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.label {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+
+.energy-value {
+  font-size: 34px;
+  text-align: center;
+  margin: 14px 0;
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 24px;
+  border-radius: 999px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: linear-gradient(to right, var(--accent) 50%, var(--line) 50%);
+  transition: background 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #0f172a;
+  border: 2px solid var(--accent);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.option span {
+  display: block;
+  padding: 16px;
+  border-radius: 14px;
+  text-align: center;
+  background: #111;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.option span:active {
+  transform: scale(0.94);
+}
+
+.option input { display: none; }
+
+.button {
+  margin-top: 24px;
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  font-weight: 800;
+  background: var(--accent);
+  color: #00131d;
+  cursor: pointer;
+}
+
+.button:active {
+  transform: scale(0.96);
+}
+
+.result {
+  display: none;
+  text-align: center;
+  padding: 48px 0 40px;
+}
+
+.result.active {
+  display: block;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-title {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.result-desc {
+  margin-top: 12px;
+  opacity: 0.85;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<h1>KOM<span class="pass">PASS</span></h1>
+
+<div class="step active" id="step1">
+  <div class="label">Моя энергия сейчас от 1 до 10?</div>
+  <input id="energy" type="range" min="1" max="10" value="5" />
+  <div class="energy-value"><span id="energyValue">5</span></div>
+  <button class="button" onclick="handleEnergy()">Далее</button>
+</div>
+
+<div class="step" id="step2">
+  <div class="label">Я хочу делать или сопротивляюсь?</div>
+  <div class="options">
+    <div class="option"><span onclick="handleDrive('want')">Хочу</span></div>
+    <div class="option"><span onclick="handleDrive('resist')">Сопротивляюсь</span></div>
+  </div>
+</div>
+
+<div class="step" id="step3">
+  <div class="label">Есть понятный следующий шаг?</div>
+  <div class="options">
+    <div class="option"><span onclick="showResult('action')">Да</span></div>
+    <div class="option"><span onclick="showResult('clarify')">Нет</span></div>
+  </div>
+</div>
+
+<div class="step" id="step4">
+  <div class="label">Отдохнуть или поработать?</div>
+  <div class="options">
+    <div class="option"><span onclick="showResult('rest')">Отдохнуть</span></div>
+    <div class="option"><span onclick="showResult('clarity')">Поработать</span></div>
+  </div>
+</div>
+
+<div class="result" id="result">
+  <div class="result-title" id="resultTitle"></div>
+  <div class="result-desc" id="resultDesc"></div>
+</div>
+
+</div>
+
+<script>
+const energy = document.getElementById('energy');
+const energyValue = document.getElementById('energyValue');
+
+energy.addEventListener('input', () => {
+  const val = Number(energy.value);
+  energyValue.textContent = val;
+
+  const percent = (val - 1) / 9 * 100;
+  energy.style.background = `linear-gradient(to right, #38bdf8 ${percent}%, #2a3040 ${percent}%)`;
+});
+
+function goTo(step) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById(step).classList.add('active');
+}
+
+function handleEnergy() {
+  const e = Number(energy.value);
+  if (e <= 4) {
+    showResult('low');
+  } else {
+    goTo('step2');
+  }
+}
+
+function handleDrive(val) {
+  if (val === 'want') {
+    goTo('step3');
+  } else {
+    goTo('step4');
+  }
+}
+
+function showResult(type) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+
+  setTimeout(() => {
+    document.getElementById('result').classList.add('active');
+  }, 150);
+
+  const map = {
+    low: {
+      title: 'Отдых. Без вариантов',
+      desc: 'Сейчас необходимо восстановиться'
+    },
+    rest: {
+      title: 'Осознанный отдых',
+      desc: 'Выбери восстановление'
+    },
+    action: {
+      title: 'Иди в действие',
+      desc: 'Сфокусируйся на задаче прямо перед собой'
+    },
+    clarify: {
+      title: 'Сначала проясни шаг',
+      desc: 'Не дави на себя, вначале определи следующий шаг'
+    },
+    clarity: {
+      title: 'Сначала ясность',
+      desc: 'Разберись, что именно тебя тормозит'
+    }
+  };
+
+  document.getElementById('resultTitle').innerText = map[type].title;
+  document.getElementById('resultDesc').innerText = map[type].desc;
+}
+</script>
+
+</body>
+</html>
